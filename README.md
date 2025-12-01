@@ -1,6 +1,10 @@
 # Pretty UTC
 
-A simple, user-friendly web tool to convert UTC timestamps to your local time. Instantly parse ISO 8601 and SQL-style UTC times, see the result in your time zone, and get a human-friendly "relative time" (e.g., "2 hours ago").
+## Live Demo
+
+👉 [Try it here](https://shajin-sha.github.io/pretty-UTC)
+
+A simple, user-friendly web tool to convert UTC timestamps to your local time. Instantly parse ISO 8601 and SQL-style UTC times, see the result in your time zone, and get a human-friendly "relative" time display.
 
 ## Features
 
