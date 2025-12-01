@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UTC to IST Converter</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+    </style>
+</head>
+<body class="bg-white min-h-screen flex items-center justify-center p-4 text-slate-950">
+
+    <div class="w-full max-w-md bg-white border border-slate-200 rounded-xl shadow-sm">
+        
+        <!-- Header -->
+        <div class="p-6 border-b border-slate-100">
+            <h1 class="text-xl font-semibold tracking-tight text-slate-900">Time Converter</h1>
+            <p class="text-sm text-slate-500 mt-1">Convert UTC timestamps to Indian Standard Time.</p>
+        </div>
+
+        <div class="p-6 space-y-6">
+            
+            <!-- Input Section -->
+            <div class="space-y-2">
+                <label class="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70" for="timeInput">
+                    UTC Timestamp
+                </label>
+                <div class="relative">
+                    <input type="text" id="timeInput" 
+                        class="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm ring-offset-white file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-slate-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 pr-10 font-mono"
+                        placeholder="YYYY-MM-DD HH:MM:SS.xxxxxx+00"
+                        value="2025-12-01 10:32:22.750456+00">
+                    <button onclick="pasteFromClipboard()" class="absolute right-3 top-2.5 text-slate-400 hover:text-slate-900 transition-colors" title="Paste">
+                        <i class="far fa-clipboard"></i>
+                    </button>
+                </div>
+                <p class="text-[0.8rem] text-slate-500">
+                    Accepts ISO 8601 and SQL timestamp formats.
+                </p>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="grid grid-cols-2 gap-3">
+                <button onclick="setNow()" class="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-slate-200 bg-white hover:bg-slate-100 hover:text-slate-900 h-10 px-4 py-2">
+                    Use Current Time
+                </button>
+                <button onclick="processTime()" class="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-slate-900 text-slate-50 hover:bg-slate-900/90 h-10 px-4 py-2">
+                    Convert
+                </button>
+            </div>
+
+            <!-- Error Message -->
+            <div id="errorMsg" class="hidden rounded-md bg-red-50 p-3 text-sm text-red-900 border border-red-100 flex items-center">
+                <i class="fas fa-circle-exclamation mr-2 h-4 w-4"></i>
+                <span id="errorText">Invalid date format</span>
+            </div>
+
+            <!-- Results Section -->
+            <div id="resultsArea" class="hidden space-y-4 pt-2 animate-in fade-in slide-in-from-top-2 duration-300">
+                
+                <div class="grid gap-4">
+                    <!-- Main Result -->
+                    <div class="rounded-lg border border-slate-200 bg-white text-slate-950 shadow-sm">
+                        <div class="p-6 flex flex-col space-y-1.5">
+                            <h3 class="font-semibold leading-none tracking-tight">Indian Standard Time</h3>
+                            <p class="text-sm text-slate-500">Converted result (UTC +5:30)</p>
+                        </div>
+                        <div class="p-6 pt-0">
+                            <div class="text-3xl font-bold tracking-tighter" id="resTime">--:-- --</div>
+                            <div class="text-sm font-medium text-slate-500 mt-1" id="resDate">--</div>
+                        </div>
+                    </div>
+
+                    <!-- Relative Time -->
+                    <div class="rounded-lg border border-slate-200 bg-slate-50 text-slate-950 shadow-sm p-4 flex items-center justify-between">
+                         <div class="flex items-center space-x-3">
+                            <div class="flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white">
+                                <i class="fas fa-clock text-slate-500 text-sm"></i>
+                            </div>
+                            <span class="text-sm font-medium">Relative Time</span>
+                         </div>
+                         <span id="resRelative" class="font-semibold text-slate-900">--</span>
+                    </div>
+                </div>
+
+                <!-- Footer/Debug -->
+                <div class="text-center pt-2">
+                    <p class="text-[10px] uppercase tracking-wider text-slate-400 font-medium">Original UTC Parse</p>
+                    <p class="text-[10px] text-slate-400 font-mono mt-0.5 truncate" id="resUtc"></p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        // Initialize on load
+        window.onload = () => {
+            processTime();
+        };
+
+        async function pasteFromClipboard() {
+            try {
+                const text = await navigator.clipboard.readText();
+                document.getElementById('timeInput').value = text;
+                processTime();
+            } catch (err) {
+                console.log('Clipboard access denied');
+            }
+        }
+
+        function setNow() {
+            const now = new Date();
+            const iso = now.toISOString().replace('T', ' ').replace('Z', '+00');
+            document.getElementById('timeInput').value = iso;
+            processTime();
+        }
+
+        function processTime() {
+            const inputRaw = document.getElementById('timeInput').value.trim();
+            const errorDiv = document.getElementById('errorMsg');
+            const resultsDiv = document.getElementById('resultsArea');
+            
+            errorDiv.classList.add('hidden');
+            resultsDiv.classList.add('hidden');
+
+            if (!inputRaw) return;
+
+            try {
+                // Robust Parsing
+                let safeString = inputRaw;
+                safeString = safeString.replace(' ', 'T');
+                // Truncate microseconds to milliseconds
+                safeString = safeString.replace(/(\.\d{3})\d+/, '$1');
+                // Fix +00 to Z
+                safeString = safeString.replace(/\+00(:?00)?$/, 'Z');
+                
+                const dateObj = new Date(safeString);
+
+                if (isNaN(dateObj.getTime())) {
+                    throw new Error("Invalid Date Format");
+                }
+
+                const istTime = new Intl.DateTimeFormat('en-IN', {
+                    timeZone: 'Asia/Kolkata',
+                    hour: 'numeric',
+                    minute: 'numeric',
+                    second: 'numeric',
+                    hour12: true
+                }).format(dateObj);
+
+                const istDate = new Intl.DateTimeFormat('en-IN', {
+                    timeZone: 'Asia/Kolkata',
+                    day: 'numeric',
+                    month: 'long',
+                    year: 'numeric'
+                }).format(dateObj);
+
+                const relativeText = getRelativeTime(dateObj);
+
+                document.getElementById('resTime').textContent = istTime.toUpperCase();
+                document.getElementById('resDate').textContent = istDate;
+                document.getElementById('resRelative').textContent = relativeText;
+                document.getElementById('resUtc').textContent = dateObj.toUTCString();
+
+                resultsDiv.classList.remove('hidden');
+
+            } catch (e) {
+                document.getElementById('errorText').textContent = "Invalid format. Expected: YYYY-MM-DD HH:MM:SS+00";
+                errorDiv.classList.remove('hidden');
+            }
+        }
+
+        function getRelativeTime(date) {
+            const now = new Date();
+            const diffMs = date - now; 
+            const diffSec = Math.round(diffMs / 1000);
+            
+            const rtf = new Intl.RelativeTimeFormat('en', { numeric: 'auto' });
+
+            const absSec = Math.abs(diffSec);
+
+            if (absSec < 60) return rtf.format(diffSec, 'second');
+            
+            const diffMin = Math.round(diffSec / 60);
+            const absMin = Math.abs(diffMin);
+            if (absMin < 60) return rtf.format(diffMin, 'minute');
+
+            const diffHour = Math.round(diffSec / 3600);
+            const absHour = Math.abs(diffHour);
+            if (absHour < 24) return rtf.format(diffHour, 'hour');
+
+            const diffDay = Math.round(diffSec / 86400);
+            const absDay = Math.abs(diffDay);
+            if (absDay < 30) return rtf.format(diffDay, 'day');
+
+            const diffMonth = Math.round(diffSec / 2592000);
+            const absMonth = Math.abs(diffMonth);
+            if (absMonth < 12) return rtf.format(diffMonth, 'month');
+
+            const diffYear = Math.round(diffSec / 31536000);
+            return rtf.format(diffYear, 'year');
+        }
+    </script>
+</body>
+</html>
